@@ -127,15 +127,25 @@
     }
 
     async function startScanner() {
-      if (!hasCamera()) {
+    if (!hasCamera()) {
         alert('Câmera não disponível neste dispositivo');
         return;
-      }
-      
-      try {
+    }
+    
+    try {
+        // Parar scanner anterior se existir
+        if (scannerActive) {
+            stopScanner();
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
         // Solicitar acesso à câmera
         videoStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' } // Preferir câmera traseira
+            video: { 
+                facingMode: 'environment', // Preferir câmera traseira
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
         });
         
         // Exibir o vídeo
@@ -143,16 +153,21 @@
         const scannerContainer = document.getElementById('scanner-container');
         
         videoElement.srcObject = videoStream;
+        videoElement.setAttribute('playsinline', true); // Importante para iOS
         scannerContainer.classList.add('active');
         scannerActive = true;
         
-        // Iniciar processo de escaneamento
-        scanningInterval = setInterval(scanBarcode, 100);
+        // Esperar o vídeo estar pronto
+        videoElement.onloadedmetadata = function() {
+            videoElement.play();
+            
+            // Iniciar processo de escaneamento
+            scanningInterval = setInterval(scanBarcode, 300); // Reduzi a frequência para melhor performance
+        };
         
-      } catch (error) {
+    } catch (error) {
         console.error('Erro ao acessar a câmera:', error);
         alert('Não foi possível acessar a câmera: ' + error.message);
-      }
     }
 
     function stopScanner() {
@@ -177,50 +192,55 @@
     }
 
     function scanBarcode() {
-      if (!scannerActive) return;
-      
-      const videoElement = document.getElementById('scanner-video');
-      if (!videoElement || videoElement.readyState !== videoElement.HAVE_ENOUGH_DATA) {
+    if (!scannerActive || !window.jsQR) return;
+    
+    const videoElement = document.getElementById('scanner-video');
+    const canvas = document.getElementById('scanner-canvas');
+    const context = canvas.getContext('2d');
+    
+    if (!videoElement || videoElement.readyState !== videoElement.HAVE_ENOUGH_DATA) {
         return;
-      }
-      
-      // Criar canvas para processar a imagem
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      canvas.width = videoElement.videoWidth;
-      canvas.height = videoElement.videoHeight;
-      
-      // Desenhar o frame atual do vídeo no canvas
-      context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-      
-      // Obter dados da imagem
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      
-      // Tentar decodificar o código
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: 'dontInvert',
-      });
-      
-      // Se encontrou um código válido
-      if (code) {
-        // Extrair número da NF (assumindo que o código contenha apenas números)
-        const nfNumber = code.data.replace(/\D/g, '');
-        
-        if (nfNumber) {
-          // Preencher o campo de número da NF
-          document.getElementById('nfNumero').value = nfNumber;
-          
-          // Focar no próximo campo
-          document.getElementById('nfDataHora')?.focus();
-          
-          // Parar o scanner
-          stopScanner();
-          
-          // Feedback para o usuário
-          alert('NF escaneada: ' + nfNumber);
-        }
-      }
     }
+    
+    // Ajustar o canvas para o tamanho do vídeo
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+    
+    // Desenhar o frame atual do vídeo no canvas
+    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+    
+    // Obter dados da imagem
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    
+    // Tentar decodificar o código
+    try {
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'dontInvert',
+        });
+        
+        // Se encontrou um código válido
+        if (code) {
+            // Extrair número da NF (assumindo que o código contenha apenas números)
+            const nfNumber = code.data.replace(/\D/g, '');
+            
+            if (nfNumber) {
+                // Preencher o campo de número da NF
+                document.getElementById('nfNumero').value = nfNumber;
+                
+                // Focar no próximo campo
+                document.getElementById('nfDataHora')?.focus();
+                
+                // Parar o scanner
+                stopScanner();
+                
+                // Feedback para o usuário
+                alert('NF escaneada: ' + nfNumber);
+            }
+        }
+    } catch (error) {
+        console.error('Erro no scanner:', error);
+    }
+}
 
     // ===== NF FUNCTIONS =====
     function salvarNF() {
