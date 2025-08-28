@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LF Transportes — App de Coleta</title>
+  <meta name="theme-color" content="#ffa500" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo" style="display:flex;align-items:center;justify-content:center;color:var(--lf-blue);font-weight:bold">LF</div>
+      <h1>LF Transportes • App de Coleta</h1>
+    </div>
+    <span class="badge">v2.0 com Scanner</span>
+  </header>
+
+  <div class="container">
+    <!-- Navegação -->
+    <nav class="tabs" aria-label="Navegação de abas">
+      <button class="tab-btn active" data-tab="dash">Dashboard</button>
+      <button class="tab-btn" data-tab="check">Checklist</button>
+      <button class="tab-btn" data-tab="nf">Cadastrar NF</button>
+      <button class="tab-btn" data-tab="eta">ETA</button>
+      <button class="tab-btn" data-tab="sum">Resumo</button>
+    </nav>
+
+    <!-- DASHBOARD -->
+    <section id="dash" class="tab card" style="display:block;">
+      <div class="card-title">
+        <h2>📊 Dashboard</h2>
+        <div class="row">
+          <label>De: <input type="date" id="filtroInicio" /></label>
+          <label>Até: <input type="date" id="filtroFim" /></label>
+          <button class="btn-primary" onclick="exportNFs()">Exportar CSV</button>
+        </div>
+      </div>
+      <div id="dashCards" class="grid grid-3"></div>
+    </section>
+
+    <!-- CHECKLIST -->
+    <section id="check" class="tab card" style="display:none;">
+      <h2>✅ Checklist</h2>
+      <div id="checklist" class="list">
+        <label class="check-item"><input type="checkbox" /> Pneus calibrados</label>
+        <label class="check-item"><input type="checkbox" /> Luzes funcionando</label>
+        <label class="check-item"><input type="checkbox" /> Lacres conferidos</label>
+        <label class="check-item"><input type="checkbox" /> Documentos em mãos</label>
+      </div>
+    </section>
+
+    <!-- CADASTRAR NF -->
+    <section id="nf" class="tab card" style="display:none;">
+      <h2>🧾 Cadastrar Nota Fiscal</h2>
+      
+      <!-- Scanner Section -->
+      <div class="row">
+        <button class="btn-primary" id="btScannerNF" style="display: flex; align-items: center; gap: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 7V5C4 4.44772 4.44772 4 5 4H7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M4 17V19C4 19.5523 4.44772 20 5 20H7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M20 17H22C22.5523 17 23 17.4477 23 18V20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M20 7H22C22.5523 7 23 6.55228 23 6V4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <rect x="1" y="1" width="22" height="22" rx="3" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 10H16V14H8V10Z" fill="currentColor"/>
+          </svg>
+          Escanear NF
+        </button>
+      </div>
+      
+      <div id="scanner-container">
+        <div class="scanner-overlay">
+          <div class="scanner-frame"></div>
+        </div>
+        <video id="scanner-video"></video>
+        <div class="scanner-controls">
+          <button class="btn-ghost" id="btStopScanner">Parar Scanner</button>
+        </div>
+      </div>
+      
+      <div class="grid grid-2" style="margin-top:10px">
+        <div class="card">
+          <h3>Dados básicos</h3>
+          <label>Número NF <input id="nfNumero" /></label>
+          <label>Data/Hora coleta <input id="nfDataHora" type="datetime-local" /></label>
+          <label>Remetente <input id="nfRem" /></label>
+          <label>Destinatário <input id="nfDest" /></label>
+          <div class="grid grid-2">
+            <label>Volumes <input id="nfVolumes" type="number" min="0" /></label>
+            <label>Peso (kg) <input id="nfPeso" type="number" step="0.01" min="0" /></label>
+          </div>
+          <div class="grid grid-2">
+            <label>m³ <input id="nfM3" type="number" step="0.01" min="0" /></label>
+            <label>Rota
+              <select id="nfRota">
+                <option>Fortaleza</option>
+                <option>Belém</option>
+                <option>Manaus</option>
+                <option>Boa Vista</option>
+                <option>Outra</option>
+              </select>
+            </label>
+          </div>
+          <label>Responsável <input id="nfResp" /></label>
+          <label>Observações <textarea id="nfObs" rows="3"></textarea></label>
+          <button class="btn-primary" id="btSalvarNF">Salvar NF</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ETA -->
+    <section id="eta" class="tab card" style="display:none;">
+      <h2>⏱️ ETA</h2>
+      <div class="grid grid-3 compact-grid">
+        <label>Partida <input id="etaPartida" type="datetime-local" /></label>
+        <label>Duração (min) <input id="etaMin" type="number" min="1" /></label>
+        <div class="row">
+          <button class="btn-primary" id="btCalcETA">Calcular</button>
+          <button class="btn-ghost" id="btSalvarETA">Salvar ETA</button>
+        </div>
+      </div>
+      <p id="etaOut" class="eta-out">—</p>
+    </section>
+
+    <!-- RESUMO -->
+    <section id="sum" class="tab card" style="display:none;">
+      <h2>🧾 Resumo</h2>
+      <div id="sumResumo"></div>
+    </section>
+
+    <!-- Controles de Admin -->
+    <section class="card">
+      <h3>🔐 Administração</h3>
+      <div class="row">
+        <button class="btn-primary" onclick="loginAdmin()">Entrar como Admin</button>
+        <button class="btn-ghost" onclick="logoutAdmin()">Sair do Admin</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+</body>
+</html>
