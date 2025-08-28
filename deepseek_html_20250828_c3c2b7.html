@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LF Transportes — App de Coleta</title>
+  <meta name="theme-color" content="#ffa500" />
+  <style>
+    :root{
+      --lf-blue:#004c6d;
+      --lf-blue-2:#0a6a95;
+      --lf-orange:#ffa500;
+      --text:#1e293b;
+      --muted:#64748b;
+      --card:#ffffff;
+      --border:#e2e8f0;
+      --bg:#f8fafc;
+    }
+
+    /* ===== BASE ===== */
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    /* ===== HEADER ===== */
+    .app-header{
+      background: linear-gradient(90deg, var(--lf-blue), var(--lf-blue-2));
+      color:#fff;
+      padding:16px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      position:sticky;
+      top:0;
+      z-index:10;
+      box-shadow:0 2px 10px rgba(0,0,0,.1);
+    }
+    .brand{display:flex;gap:10px;align-items:center;}
+    .logo{width:34px;height:34px;border-radius:8px;object-fit:cover;background:#fff;}
+    .app-header h1{font-size:18px;margin:0;}
+    .badge{
+      font-size:12px;
+      background:var(--lf-orange);
+      color:#111;
+      padding:6px 10px;
+      border-radius:999px;
+    }
+
+    /* ===== LAYOUT ===== */
+    .container{padding:16px;max-width:1200px;margin:0 auto;}
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding:16px;
+      border-radius:14px;
+      margin-bottom:16px;
+      box-shadow:0 6px 20px rgba(0,0,0,.06);
+      transition:transform .2s ease;
+    }
+    .card:hover{transform:translateY(-2px)}
+    .card-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+
+    .tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+    .tab-btn{
+      padding:10px 14px;
+      border:none;
+      background:var(--lf-blue);
+      color:#fff;
+      border-radius:10px;
+      font-weight:700;
+      letter-spacing:.2px;
+      transition:.25s;
+    }
+    .tab-btn:hover{filter:brightness(1.1)}
+    .tab-btn.active{background:var(--lf-orange);color:#111}
+
+    .grid{display:grid;gap:16px}
+    .grid-2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+    .grid-3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+
+    /* ===== FORMS ===== */
+    label{display:flex;flex-direction:column;gap:6px;font-weight:600;color:#0f172a}
+    input,select,textarea{
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:10px 12px;
+      font-size:14px;
+      outline: none;
+      transition:border-color .2s, box-shadow .2s;
+      background:#fff;
+    }
+    input:focus,select:focus,textarea:focus{
+      border-color:var(--lf-blue);
+      box-shadow:0 0 0 3px rgba(0,76,109,.15);
+    }
+    textarea{resize:vertical}
+
+    button{
+      cursor:pointer;border:none;padding:10px 14px;border-radius:10px;
+      font-weight:700;transition:.2s;
+    }
+    .btn-primary{background:var(--lf-orange);color:#111}
+    .btn-primary:hover{filter:brightness(0.95)}
+    .btn-ghost{background:transparent;border:2px solid var(--lf-blue);color:var(--lf-blue)}
+    .btn-ghost:hover{background:var(--lf-blue);color:#fff}
+
+    .kpi .big{font-size:24px;font-weight:800;color:var(--lf-blue)}
+
+    .muted{color:var(--muted);font-size:12px}
+    .empty{
+      display:flex;align-items:center;justify-content:center;
+      border:2px dashed var(--border);border-radius:12px;padding:22px;color:var(--muted)
+    }
+    .eta-out{font-weight:700;margin-top:8px}
+
+    /* ===== CHECKLIST ===== */
+    .list{display:grid;gap:8px}
+    .check-item{display:flex;gap:8px;align-items:center;font-weight:600;color:#0f172a}
+    .check-item input{width:auto}
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px){
+      .app-header h1{font-size:16px}
+      .tabs{flex-direction:column}
+      .tab-btn{width:100%;text-align:center}
+    }
+
+    /* ===== SCANNER STYLES ===== */
+    #scanner-container {
+      position: relative;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    #scanner-container.active {
+      display: block;
+    }
+
+    #scanner-video {
+      display: block;
+      width: 100%;
+      max-height: 300px;
+      background: #000;
+    }
+
+    .scanner-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .scanner-frame {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 70%;
+      height: 200px;
+      border: 3px solid var(--lf-orange);
+      border-radius: 12px;
+      box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.3);
+      animation: scanner-pulse 2s infinite;
+    }
+
+    @keyframes scanner-pulse {
+      0% { border-color: var(--lf-orange); }
+      50% { border-color: #ffcc66; }
+      100% { border-color: var(--lf-orange); }
+    }
+
+    .scanner-controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    /* Tabela de resumo */
+    .table-resumo {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    
+    .table-resumo th, .table-resumo td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .table-resumo th {
+      background-color: var(--lf-blue);
+      color: white;
+    }
+    
+    .table-resumo tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo" style="display:flex;align-items:center;justify-content:center;color:var(--lf-blue);font-weight:bold">LF</div>
+      <h1>LF Transportes • App de Coleta</h1>
+    </div>
+    <span class="badge">v2.0 com Scanner</span>
+  </header>
+
+  <div class="container">
+    <!-- Navegação -->
+    <nav class="tabs" aria-label="Navegação de abas">
+      <button class="tab-btn active" data-tab="dash">Dashboard</button>
+      <button class="tab-btn" data-tab="check">Checklist</button>
+      <button class="tab-btn" data-tab="nf">Cadastrar NF</button>
+      <button class="tab-btn" data-tab="eta">ETA</button>
+      <button class="tab-btn" data-tab="sum">Resumo</button>
+    </nav>
+
+    <!-- DASHBOARD -->
+    <section id="dash" class="tab card" style="display:block;">
+      <div class="card-title">
+        <h2>📊 Dashboard</h2>
+        <div class="row">
+          <label>De: <input type="date" id="filtroInicio" /></label>
+          <label>Até: <input type="date" id="filtroFim" /></label>
+          <button class="btn-primary" onclick="exportNFs()">Exportar CSV</button>
+        </div>
+      </div>
+      <div id="dashCards" class="grid grid-3"></div>
+    </section>
+
+    <!-- CHECKLIST -->
+    <section id="check" class="tab card" style="display:none;">
+      <h2>✅ Checklist</h2>
+      <div id="checklist" class="list">
+        <label class="check-item"><input type="checkbox" /> Pneus calibrados</label>
+        <label class="check-item"><input type="checkbox" /> Luzes funcionando</label>
+        <label class="check-item"><input type="checkbox" /> Lacres conferidos</label>
+        <label class="check-item"><input type="checkbox" /> Documentos em mãos</label>
+      </div>
+    </section>
+
+    <!-- CADASTRAR NF -->
+    <section id="nf" class="tab card" style="display:none;">
+      <h2>🧾 Cadastrar Nota Fiscal</h2>
+      
+      <!-- Scanner Section -->
+      <div class="row">
+        <button class="btn-primary" id="btScannerNF" style="display: flex; align-items: center; gap: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 7V5C4 4.44772 4.44772 4 5 4H7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M4 17V19C4 19.5523 4.44772 20 5 20H7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M20 17H22C22.5523 17 23 17.4477 23 18V20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M20 7H22C22.5523 7 23 6.55228 23 6V4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <rect x="1" y="1" width="22" height="22" rx="3" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 10H16V14H8V10Z" fill="currentColor"/>
+          </svg>
+          Escanear NF
+        </button>
+      </div>
+      
+      <div id="scanner-container">
+        <div class="scanner-overlay">
+          <div class="scanner-frame"></div>
+        </div>
+        <video id="scanner-video"></video>
+        <div class="scanner-controls">
+          <button class="btn-ghost" id="btStopScanner">Parar Scanner</button>
+        </div>
+      </div>
+      
+      <div class="grid grid-2" style="margin-top:10px">
+        <div class="card">
+          <h3>Dados básicos</h3>
+          <label>Número NF <input id="nfNumero" /></label>
+          <label>Data/Hora coleta <input id="nfDataHora" type="datetime-local" /></label>
+          <label>Remetente <input id="nfRem" /></label>
+          <label>Destinatário <input id="nfDest" /></label>
+          <div class="grid grid-2">
+            <label>Volumes <input id="nfVolumes" type="number" min="0" /></label>
+            <label>Peso (kg) <input id="nfPeso" type="number" step="0.01" min="0" /></label>
+          </div>
+          <div class="grid grid-2">
+            <label>m³ <input id="nfM3" type="number" step="0.01" min="0" /></label>
+            <label>Rota
+              <select id="nfRota">
+                <option>Fortaleza</option>
+                <option>Belém</option>
+                <option>Manaus</option>
+                <option>Boa Vista</option>
+                <option>Outra</option>
+              </select>
+            </label>
+          </div>
+          <label>Responsável <input id="nfResp" /></label>
+          <label>Observações <textarea id="nfObs" rows="3"></textarea></label>
+          <button class="btn-primary" id="btSalvarNF">Salvar NF</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ETA -->
+    <section id="eta" class="tab card" style="display:none;">
+      <h2>⏱️ ETA</h2>
+      <div class="grid grid-3 compact-grid">
+        <label>Partida <input id="etaPartida" type="datetime-local" /></label>
+        <label>Duração (min) <input id="etaMin" type="number" min="1" /></label>
+        <div class="row">
+          <button class="btn-primary" id="btCalcETA">Calcular</button>
+          <button class="btn-ghost" id="btSalvarETA">Salvar ETA</button>
+        </div>
+      </div>
+      <p id="etaOut" class="eta-out">—</p>
+    </section>
+
+    <!-- RESUMO -->
+    <section id="sum" class="tab card" style="display:none;">
+      <h2>🧾 Resumo</h2>
+      <div id="sumResumo"></div>
+    </section>
+
+    <!-- Controles de Admin -->
+    <section class="card">
+      <h3>🔐 Administração</h3>
+      <div class="row">
+        <button class="btn-primary" onclick="loginAdmin()">Entrar como Admin</button>
+        <button class="btn-ghost" onclick="logoutAdmin()">Sair do Admin</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <script>
+    // ===== ESTADO E FUNÇÕES PRINCIPAIS =====
+    const LS = { nfs:'xg_nfs', admin:'xg_admin' };
+    let nfs = [];
+    let scannerActive = false;
+    let videoStream = null;
+    let scanningInterval = null;
+
+    // Funções utilitárias
+    function loadLS(key, fallback){ 
+      try{ 
+        return JSON.parse(localStorage.getItem(key)) ?? fallback; 
+      } catch(e){ 
+        return fallback; 
+      } 
+    }
+    
+    function saveLS(key, val){ 
+      localStorage.setItem(key, JSON.stringify(val)); 
+    }
+    
+    function isMobile() {
+      return /Mobi|Android/i.test(navigator.userAgent);
+    }
+    
+    function isAdmin() {
+      return localStorage.getItem(LS.admin) === "true";
+    }
+    
+    function loginAdmin() {
+      localStorage.setItem(LS.admin, "true");
+      alert("Modo administrador ativado");
+      renderDashboardCards();
+    }
+    
+    function logoutAdmin() {
+      localStorage.removeItem(LS.admin);
+      alert("Saiu do modo administrador");
+      renderDashboardCards();
+    }
+
+    // ===== DASHBOARD =====
+    function renderDashboardCards() {
+      const container = document.getElementById("dashCards");
+      if (!container) return;
+
+      container.innerHTML = "";
+
+      // Modo simplificado no celular (não-admin)
+      if (isMobile() && !isAdmin()) {
+        container.innerHTML = "<p class='muted'>📱 Versão simplificada no celular (somente Admin vê os cards completos).</p>";
+        return;
+      }
+
+      if (!nfs || !nfs.length) {
+        container.innerHTML = "<div class='empty'>Nenhuma NF cadastrada ainda. Vá em <b>Cadastrar NF</b> para adicionar.</div>";
+        return;
+      }
+
+      // Agrupar por rota
+      const agrupado = {};
+      nfs.forEach(nf => {
+        const rota = nf.rota || 'Outra';
+        if (!agrupado[rota]) {
+          agrupado[rota] = {
+            qtd: 0,
+            volumes: 0,
+            peso: 0,
+            m3: 0,
+            nfs: []
+          };
+        }
+        
+        agrupado[rota].qtd += 1;
+        agrupado[rota].volumes += Number(nf.volumes || 0);
+        agrupado[rota].peso += Number(nf.peso || 0);
+        agrupado[rota].m3 += Number(nf.m3 || 0);
+        agrupado[rota].nfs.push(nf);
+      });
+
+      // Criar cards
+      for (const rota in agrupado) {
+        const dados = agrupado[rota];
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <h3>${rota}</h3>
+          <div class="kpi"><span class="big">${dados.qtd}</span> NFs</div>
+          <div class="kpi"><span class="big">${dados.volumes}</span> Volumes</div>
+          <div class="kpi"><span class="big">${dados.peso.toFixed(2)}</span> kg</div>
+          <div class="kpi"><span class="big">${dados.m3.toFixed(2)}</span> m³</div>
+        `;
+        container.appendChild(card);
+      }
+    }
+
+    // ===== EXPORTAÇÃO =====
+    function exportNFs() {
+      const startInp = document.getElementById("filtroInicio").value;
+      const endInp = document.getElementById("filtroFim").value;
+      const start = startInp ? new Date(startInp) : null;
+      const end = endInp ? new Date(endInp) : null;
+
+      const filtradas = nfs.filter(nf => {
+        const d = new Date(nf.datahora);
+        const afterStart = start ? d >= start : true;
+        const beforeEnd = end ? d <= end : true;
+        return afterStart && beforeEnd;
+      });
+
+      let csv = "NF,Data,Remetente,Destinatário,Volumes,Peso,m³,Rota\n";
+      filtradas.forEach(nf => {
+        csv += `${nf.numero},${nf.datahora},${nf.rem},${nf.dest},${nf.volumes},${nf.peso},${nf.m3},${nf.rota}\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "notas_filtradas.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // ===== SCANNER =====
+    function hasCamera() {
+      return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    }
+
+    async function startScanner() {
+      if (!hasCamera()) {
+        alert('Câmera não disponível neste dispositivo');
+        return;
+      }
+      
+      try {
+        // Solicitar acesso à câmera
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' } // Preferir câmera traseira
+        });
+        
+        // Exibir o vídeo
+        const videoElement = document.getElementById('scanner-video');
+        const scannerContainer = document.getElementById('scanner-container');
+        
+        videoElement.srcObject = videoStream;
+        scannerContainer.classList.add('active');
+        scannerActive = true;
+        
+        // Iniciar processo de escaneamento
+        scanningInterval = setInterval(scanBarcode, 100);
+        
+      } catch (error) {
+        console.error('Erro ao acessar a câmera:', error);
+        alert('Não foi possível acessar a câmera: ' + error.message);
+      }
+    }
+
+    function stopScanner() {
+      scannerActive = false;
+      const scannerContainer = document.getElementById('scanner-container');
+      scannerContainer.classList.remove('active');
+      
+      if (scanningInterval) {
+        clearInterval(scanningInterval);
+        scanningInterval = null;
+      }
+      
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+      }
+      
+      const videoElement = document.getElementById('scanner-video');
+      if (videoElement) {
+        videoElement.srcObject = null;
+      }
+    }
+
+    function scanBarcode() {
+      if (!scannerActive) return;
+      
+      const videoElement = document.getElementById('scanner-video');
+      if (!videoElement || videoElement.readyState !== videoElement.HAVE_ENOUGH_DATA) {
+        return;
+      }
+      
+      // Criar canvas para processar a imagem
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = videoElement.videoWidth;
+      canvas.height = videoElement.videoHeight;
+      
+      // Desenhar o frame atual do vídeo no canvas
+      context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+      
+      // Obter dados da imagem
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      
+      // Tentar decodificar o código
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert',
+      });
+      
+      // Se encontrou um código válido
+      if (code) {
+        // Extrair número da NF (assumindo que o código contenha apenas números)
+        const nfNumber = code.data.replace(/\D/g, '');
+        
+        if (nfNumber) {
+          // Preencher o campo de número da NF
+          document.getElementById('nfNumero').value = nfNumber;
+          
+          // Focar no próximo campo
+          document.getElementById('nfDataHora')?.focus();
+          
+          // Parar o scanner
+          stopScanner();
+          
+          // Feedback para o usuário
+          alert('NF escaneada: ' + nfNumber);
+        }
+      }
+    }
+
+    // ===== NF FUNCTIONS =====
+    function salvarNF() {
+      const nf = {
+        numero: document.getElementById("nfNumero").value.trim(),
+        datahora: document.getElementById("nfDataHora").value,
+        rem: document.getElementById("nfRem").value.trim(),
+        dest: document.getElementById("nfDest").value.trim(),
+        volumes: Number(document.getElementById("nfVolumes").value||0),
+        peso: Number(document.getElementById("nfPeso").value||0),
+        m3: Number(document.getElementById("nfM3").value||0),
+        rota: document.getElementById("nfRota").value,
+        resp: document.getElementById("nfResp").value.trim(),
+        obs: document.getElementById("nfObs").value.trim()
+      };
+      
+      if(!nf.numero){ 
+        alert("Informe número da NF"); 
+        return; 
+      }
+      
+      nfs.unshift(nf);
+      saveLS(LS.nfs, nfs);
+      renderDashboardCards();
+      atualizarResumo();
+      alert("NF salva!");
+      
+      // Limpar campos
+      ["nfNumero","nfDataHora","nfRem","nfDest","nfVolumes","nfPeso","nfM3","nfResp","nfObs"].forEach(id=>{
+        const el = document.getElementById(id); 
+        if (el) el.value = "";
+      });
+    }
+
+    function atualizarResumo() {
+      const resumoEl = document.getElementById('sumResumo');
+      if (!resumoEl) return;
+      
+      if (!nfs.length) {
+        resumoEl.innerHTML = '<div class="empty">Nenhuma NF cadastrada</div>';
+        return;
+      }
+      
+      // Agrupar por rota
+      const agrupado = {};
+      nfs.forEach(nf => {
+        const rota = nf.rota || 'Outra';
+        if (!agrupado[rota]) {
+          agrupado[rota] = {
+            qtd: 0,
+            volumes: 0,
+            peso: 0,
+            m3: 0
+          };
+        }
+        
+        agrupado[rota].qtd += 1;
+        agrupado[rota].volumes += Number(nf.volumes || 0);
+        agrupado[rota].peso += Number(nf.peso || 0);
+        agrupado[rota].m3 += Number(nf.m3 || 0);
+      });
+      
+      // Criar tabela
+      let html = '<table class="table-resumo"><thead><tr><th>Rota</th><th>NFs</th><th>Volumes</th><th>Peso (kg)</th><th>m³</th></tr></thead><tbody>';
+      
+      for (const rota in agrupado) {
+        const dados = agrupado[rota];
+        html += `<tr>
+          <td>${rota}</td>
+          <td>${dados.qtd}</td>
+          <td>${dados.volumes}</td>
+          <td>${dados.peso.toFixed(2)}</td>
+          <td>${dados.m3.toFixed(2)}</td>
+        </tr>`;
+      }
+      
+      html += '</tbody></table>';
+      resumoEl.innerHTML = html;
+    }
+
+    // ===== ETA FUNCTIONS =====
+    function calcularETA() {
+      const partida = document.getElementById("etaPartida").value;
+      const min = Number(document.getElementById("etaMin").value);
+      if(!partida || !min){ 
+        alert("Informe partida e duração"); 
+        return; 
+      }
+      
+      const d = new Date(partida);
+      const eta = new Date(d.getTime() + min*60000);
+      document.getElementById("etaOut").textContent = `Chegada prevista: ${eta.toLocaleString()}`;
+    }
+
+    function salvarETA() {
+      localStorage.setItem("xg_eta", document.getElementById("etaOut").textContent);
+      alert("ETA salvo no resumo!");
+    }
+
+    // ===== INITIALIZATION =====
+    document.addEventListener("DOMContentLoaded", function() {
+      // Carregar dados
+      nfs = loadLS(LS.nfs, []);
+      
+      // Configurar tabs
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', ()=>{
+          document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          document.querySelectorAll('.tab').forEach(sec=>{
+            sec.style.display = (sec.id===btn.dataset.tab?'block':'none');
+          });
+        });
+      });
+      
+      // Configurar scanner
+      document.getElementById('btScannerNF').addEventListener('click', startScanner);
+      document.getElementById('btStopScanner').addEventListener('click', stopScanner);
+      
+      // Configurar botão salvar NF
+      document.getElementById('btSalvarNF').addEventListener('click', salvarNF);
+      
+      // Configurar ETA
+      document.getElementById('btCalcETA').addEventListener('click', calcularETA);
+      document.getElementById('btSalvarETA').addEventListener('click', salvarETA);
+      
+      // Inicializar views
+      renderDashboardCards();
+      atualizarResumo();
+      
+      // Service Worker
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("service-worker.js")
+          .then(() => console.log("✅ Service Worker registrado"))
+          .catch(err => console.error("SW falhou:", err));
+      }
+    });
+  </script>
+</body>
+</html>
